@@ -1,13 +1,31 @@
 from fastapi import FastAPI
-from database import SessionLocal
-from database import SessionLocal
+from database import SessionLocal, engine, Base
 from models import Customer, Counter
 from datetime import datetime, date
+from sqlalchemy import func, extract
 app = FastAPI()
+Base.metadata.create_all(bind=engine)
+AVERAGE_SERVICE_MINUTES = 2
 
 @app.get("/")
 def root():
     return {"message": "Queue system is running"}
+
+@app.on_event("startup")
+def create_counters():
+    db = SessionLocal()
+
+    existing = db.query(Counter).count()
+
+    if existing == 0:
+        db.add_all([
+            Counter(name="Counter 1"),
+            Counter(name="Counter 2"),
+            Counter(name="Counter 3")
+        ])
+        db.commit()
+
+    db.close()
 
 @app.get("/status")
 def show_status():
@@ -55,9 +73,11 @@ def assign_customer(db):
 
     free_counter.current_customer_id = waiting_customer.id
     waiting_customer.status = "serving"
+    waiting_customer.served_at = datetime.utcnow()
+    waiting_customer.counter_name = free_counter.name
+
 
     db.commit()
-
 
 
 @app.post("/customers")
@@ -72,6 +92,14 @@ def add_customer():
 
     ticket_number = f"C{today_count + 1:03d}"
 
+    # Count how many customers are currently waiting
+    waiting_count = db.query(Customer).filter(
+        Customer.status == "waiting"
+    ).count()
+
+    # Estimated wait time
+    estimated_wait = waiting_count * AVERAGE_SERVICE_MINUTES
+
     customer = Customer(
         ticket_number=ticket_number,
         status="waiting",
@@ -81,9 +109,17 @@ def add_customer():
     db.add(customer)
     db.commit()
     db.refresh(customer)
+
     assign_customer(db)
 
-    return {"message": f"{ticket_number} added"}
+    return {
+        "ticket_number": ticket_number,
+        "status": "waiting",
+        "people_ahead": waiting_count,
+        "estimated_wait_minutes": estimated_wait
+    }
+
+
    
     
 @app.post("/counters/{counter_name}/finish")
@@ -104,6 +140,8 @@ def finish_service(counter_name: str):
 
     # Mark customer as finished
     customer.status = "finished"
+    customer.finished_at = datetime.utcnow()
+
 
     # Free the counter
     counter.current_customer_id = None
@@ -116,19 +154,63 @@ def finish_service(counter_name: str):
     return {
         "message": f"{customer.ticket_number} finished at {counter_name}"
     }
-
-
-
-@app.post("/test-db")
-def test_db():
+#reports and analytics endpoints
+@app.get("/reports/served-today")
+def served_today():
     db = SessionLocal()
+    today = date.today()
 
-    customer = Customer(
-        ticket_number="C001",
-        status="waiting"
-    )
+    count = db.query(Customer).filter(
+        Customer.service_date == today,
+        Customer.status == "finished"
+    ).count()
 
-    db.add(customer)
-    db.commit()
+    return {"served_today": count}
 
-    return {"message": "Customer inserted into database"}
+
+
+#report for each server
+
+@app.get("/reports/by-counter")
+def served_by_counter():
+    db = SessionLocal()
+    today = date.today()
+
+    results = db.query(
+        Customer.counter_name,
+        func.count(Customer.id)
+    ).filter(
+        Customer.service_date == today,
+        Customer.status == "finished"
+    ).group_by(Customer.counter_name).all()
+
+    db.close()
+
+    # Convert list of tuples into dictionary for clarity
+    return {counter: count for counter, count in results}
+
+
+
+@app.get("/reports/peak-hours")
+def peak_hours():
+    db = SessionLocal()
+    today = date.today()
+
+    results = db.query(
+        extract("hour", Customer.created_at).label("hour"),
+        func.count(Customer.id).label("customers")
+    ).filter(
+        Customer.service_date == today
+    ).group_by("hour").order_by("hour").all()
+
+    db.close()
+
+    # Convert to dict for readability
+    return {int(hour): count for hour, count in results}
+
+
+
+
+
+
+
