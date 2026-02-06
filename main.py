@@ -3,7 +3,20 @@ from database import SessionLocal, engine, Base
 from models import Customer, Counter
 from datetime import datetime, date
 from sqlalchemy import func, extract
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/teller")
+def teller_ui():
+    return FileResponse("static/teller.html")
+
+
+@app.get("/kiosk")
+def kiosk_ui():
+    return FileResponse("static/ui.html")
+
 Base.metadata.create_all(bind=engine)
 AVERAGE_SERVICE_MINUTES = 2
 
@@ -79,25 +92,27 @@ def assign_customer(db):
 
     db.commit()
 
-
 @app.post("/customers")
 def add_customer():
     db = SessionLocal()
     today = date.today()
 
-    # count how many customers already came today
-    today_count = db.query(Customer).filter(
+    last_customer = db.query(Customer).filter(
         Customer.service_date == today
-    ).count()
+    ).order_by(Customer.id.desc()).first()
 
-    ticket_number = f"C{today_count + 1:03d}"
+    if last_customer:
+        last_number = int(last_customer.ticket_number[1:])
+        next_number = last_number + 1
+    else:
+        next_number = 1
 
-    # Count how many customers are currently waiting
+    ticket_number = f"C{next_number:03d}"
+
     waiting_count = db.query(Customer).filter(
         Customer.status == "waiting"
     ).count()
 
-    # Estimated wait time
     estimated_wait = waiting_count * AVERAGE_SERVICE_MINUTES
 
     customer = Customer(
@@ -114,13 +129,11 @@ def add_customer():
 
     return {
         "ticket_number": ticket_number,
-        "status": "waiting",
         "people_ahead": waiting_count,
         "estimated_wait_minutes": estimated_wait
     }
 
-
-   
+ 
     
 @app.post("/counters/{counter_name}/finish")
 def finish_service(counter_name: str):
