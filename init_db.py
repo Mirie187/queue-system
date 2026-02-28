@@ -1,6 +1,7 @@
+# init_db.py
 from database import engine, Base
 import models
 
-print("Creating tables...")
+print("Creating database tables...")
 Base.metadata.create_all(bind=engine)
-print("Done!")
+print("✅ Database tables created successfully!")

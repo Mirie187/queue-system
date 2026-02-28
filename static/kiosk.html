@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Bank Queue - Take a Ticket</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .container {
+        background: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 30px;
+      }
+      button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-size: 18px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 10px 0;
+        width: 100%;
+        transition: background 0.3s;
+      }
+      button:hover {
+        background: #5a67d8;
+      }
+      .ticket {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f7fafc;
+        border-radius: 5px;
+        display: none;
+      }
+      .ticket-number {
+        font-size: 48px;
+        font-weight: bold;
+        color: #667eea;
+        margin: 20px 0;
+      }
+      .info {
+        color: #718096;
+        margin: 10px 0;
+      }
+      .print-btn {
+        background: #48bb78;
+        margin-top: 20px;
+      }
+      .print-btn:hover {
+        background: #38a169;
+      }
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        .ticket,
+        .ticket * {
+          visibility: visible;
+        }
+        .ticket {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          display: block !important;
+        }
+        button {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Welcome to Bank Queue</h1>
+      <button onclick="getTicket()">Get Ticket</button>
+
+      <div id="ticket" class="ticket">
+        <h2>Your Ticket</h2>
+        <div class="ticket-number" id="ticketNumber"></div>
+        <div class="info" id="peopleAhead"></div>
+        <div class="info" id="waitTime"></div>
+        <button class="print-btn" onclick="window.print()">Print Ticket</button>
+      </div>
+    </div>
+
+    <script>
+      async function getTicket() {
+        try {
+          const response = await fetch("/customers", {
+            method: "POST",
+          });
+          const data = await response.json();
+
+          document.getElementById("ticketNumber").textContent =
+            data.ticket_number;
+          document.getElementById("peopleAhead").textContent =
+            `People ahead: ${data.people_ahead}`;
+          document.getElementById("waitTime").textContent =
+            `Estimated wait: ${data.estimated_wait_minutes} minutes`;
+
+          document.getElementById("ticket").style.display = "block";
+        } catch (error) {
+          alert("Error getting ticket. Please try again.");
+        }
+      }
+    </script>
+  </body>
+</html>

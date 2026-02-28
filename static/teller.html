@@ -1,23 +1,547 @@
 <!doctype html>
 <html>
   <head>
-    <title>Teller Screen</title>
-    <link rel="stylesheet" href="/static/style.css" />
+    <title>Teller Dashboard</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #f0f2f5;
+        color: #1a1a1a;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .login-box {
+        background: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+      }
+
+      .login-box h2 {
+        margin-bottom: 30px;
+        color: #333;
+        text-align: center;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #555;
+        font-weight: 500;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e1e1e1;
+        border-radius: 6px;
+        font-size: 16px;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background: #5a67d8;
+      }
+
+      .error-message {
+        color: #e53e3e;
+        margin-top: 10px;
+        text-align: center;
+      }
+
+      .dashboard {
+        display: none;
+      }
+
+      .header {
+        background: white;
+        padding: 20px 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .teller-info {
+        background: #667eea;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 500;
+      }
+
+      .logout-btn {
+        background: #e53e3e;
+        width: auto;
+        padding: 8px 16px;
+        margin-left: 10px;
+      }
+
+      .counter-section {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .counter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+      }
+
+      .counter-card {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .counter-card:hover:not(.busy) {
+        border-color: #667eea;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .counter-card.available {
+        border-color: #48bb78;
+      }
+
+      .counter-card.busy {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: #f1f5f9;
+      }
+
+      .working-section {
+        display: none;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .stat-card h3 {
+        color: #718096;
+        font-size: 14px;
+        margin-bottom: 10px;
+      }
+
+      .stat-card .value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #2d3748;
+      }
+
+      .current-customer {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        padding: 30px;
+        border-radius: 8px;
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      .current-customer .ticket {
+        font-size: 48px;
+        font-weight: bold;
+        color: #856404;
+      }
+
+      .action-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin: 20px 0;
+      }
+
+      .leave-btn {
+        background: #e53e3e;
+        margin-top: 20px;
+      }
+
+      .refresh-btn {
+        background: #718096;
+        width: auto;
+        padding: 8px 16px;
+        margin-top: 10px;
+      }
+    </style>
   </head>
   <body>
-    <div class="kiosk">
-      <h1>Teller Panel</h1>
-
-      <select id="counter">
-        <option value="Counter 1">Counter 1</option>
-        <option value="Counter 2">Counter 2</option>
-      </select>
-
-      <button id="finish">Finish Current Customer</button>
-
-      <div id="result"></div>
+    <div id="loginPage" class="login-container">
+      <div class="login-box">
+        <h2>Teller Login</h2>
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="username" placeholder="Enter username" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Enter password" />
+        </div>
+        <button onclick="login()">Login</button>
+        <div id="loginError" class="error-message"></div>
+      </div>
     </div>
 
-    <script src="/static/teller.js"></script>
+    <div id="dashboard" class="dashboard">
+      <div class="container">
+        <div class="header">
+          <h2>Welcome, <span id="tellerName"></span></h2>
+          <div>
+            <span class="teller-info" id="counterDisplay"
+              >No counter selected</span
+            >
+            <button class="logout-btn" onclick="logout()">Logout</button>
+          </div>
+        </div>
+
+        <div id="counterSection" class="counter-section">
+          <h3>Select Your Counter</h3>
+          <div class="counter-grid" id="counterGrid">
+            <div class="loading">Loading counters...</div>
+          </div>
+          <button class="refresh-btn" onclick="loadCounters()">
+            Refresh Counters
+          </button>
+        </div>
+
+        <div id="workingSection" class="working-section">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>Waiting in Queue</h3>
+              <div class="value" id="waitingCount">0</div>
+            </div>
+            <div class="stat-card">
+              <h3>Served Today</h3>
+              <div class="value" id="servedToday">0</div>
+            </div>
+          </div>
+
+          <div id="currentCustomer" class="current-customer">
+            <div class="ticket">No customer</div>
+          </div>
+
+          <div class="action-buttons">
+            <button onclick="nextCustomer()" id="nextBtn">Next Customer</button>
+            <button onclick="completeService()" id="completeBtn">
+              Complete Service
+            </button>
+          </div>
+
+          <button class="leave-btn" onclick="leaveCounter()">
+            Leave Counter
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let token = localStorage.getItem("token");
+      let refreshInterval = null;
+
+      if (token) {
+        showDashboard();
+      }
+
+      async function login() {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        const formData = new FormData();
+        formData.append("username", username);
+        formData.append("password", password);
+
+        try {
+          const response = await fetch("/auth/token", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            token = data.access_token;
+            localStorage.setItem("token", token);
+            showDashboard();
+          } else {
+            document.getElementById("loginError").textContent =
+              "Invalid credentials";
+          }
+        } catch (error) {
+          document.getElementById("loginError").textContent = "Login failed";
+        }
+      }
+
+      async function showDashboard() {
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+
+        await loadUserData();
+        await loadCounters();
+      }
+
+      async function loadUserData() {
+        try {
+          const response = await fetch("/auth/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            document.getElementById("tellerName").textContent = data.full_name;
+
+            if (data.current_counter_id) {
+              document.getElementById("counterSection").style.display = "none";
+              document.getElementById("workingSection").style.display = "block";
+              document.getElementById("counterDisplay").textContent =
+                `Working at: ${data.current_counter_name}`;
+              startAutoRefresh();
+              await loadTellerStatus();
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load user data");
+        }
+      }
+
+      async function loadCounters() {
+        try {
+          const response = await fetch("/counters/available", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            displayCounters(data);
+          }
+        } catch (error) {
+          console.error("Failed to load counters");
+        }
+      }
+
+      function displayCounters(data) {
+        const grid = document.getElementById("counterGrid");
+        let html = "";
+
+        data.available.forEach((counter) => {
+          html += `
+                    <div class="counter-card available" onclick="selectCounter(${counter.id})">
+                        <h3>${counter.name}</h3>
+                        <div>✓ Available</div>
+                    </div>
+                `;
+        });
+
+        data.busy.forEach((counter) => {
+          html += `
+                    <div class="counter-card busy">
+                        <h3>${counter.name}</h3>
+                        <div>👤 ${counter.teller}</div>
+                    </div>
+                `;
+        });
+
+        grid.innerHTML = html || "<p>No counters available</p>";
+      }
+
+      async function selectCounter(counterId) {
+        try {
+          const response = await fetch(`/teller/select-counter/${counterId}`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            document.getElementById("counterSection").style.display = "none";
+            document.getElementById("workingSection").style.display = "block";
+            document.getElementById("counterDisplay").textContent =
+              `Working at: ${data.counter}`;
+            startAutoRefresh();
+            await loadTellerStatus();
+          } else {
+            const error = await response.json();
+            alert(error.detail || "Failed to select counter");
+          }
+        } catch (error) {
+          alert("Failed to select counter");
+        }
+      }
+
+      async function loadTellerStatus() {
+        try {
+          const response = await fetch("/teller/status", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+
+            if (data.at_counter) {
+              document.getElementById("waitingCount").textContent =
+                data.waiting_customers;
+              document.getElementById("servedToday").textContent =
+                data.served_today;
+
+              if (data.current_customer) {
+                document.getElementById("currentCustomer").innerHTML = `
+                                <div class="ticket">${data.current_customer.ticket_number}</div>
+                                <div>Waiting: ${data.current_customer.waiting_minutes} min</div>
+                            `;
+              } else {
+                document.getElementById("currentCustomer").innerHTML = `
+                                <div class="ticket">No customer</div>
+                                <div>Ready for next customer</div>
+                            `;
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load status");
+        }
+      }
+
+      async function nextCustomer() {
+        try {
+          const response = await fetch("/teller/next-customer", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            if (data.ticket_number) {
+              await loadTellerStatus();
+            } else {
+              alert(data.message || "No customers waiting");
+            }
+          }
+        } catch (error) {
+          alert("Failed to get next customer");
+        }
+      }
+
+      async function completeService() {
+        try {
+          const response = await fetch("/teller/complete-service", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            await loadTellerStatus();
+          }
+        } catch (error) {
+          alert("Failed to complete service");
+        }
+      }
+
+      async function leaveCounter() {
+        if (!confirm("Are you sure you want to leave this counter?")) return;
+
+        try {
+          const response = await fetch("/teller/leave-counter", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.ok) {
+            stopAutoRefresh();
+            document.getElementById("counterSection").style.display = "block";
+            document.getElementById("workingSection").style.display = "none";
+            document.getElementById("counterDisplay").textContent =
+              "No counter selected";
+            await loadCounters();
+          }
+        } catch (error) {
+          alert("Failed to leave counter");
+        }
+      }
+
+      function startAutoRefresh() {
+        if (refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(loadTellerStatus, 3000);
+      }
+
+      function stopAutoRefresh() {
+        if (refreshInterval) {
+          clearInterval(refreshInterval);
+          refreshInterval = null;
+        }
+      }
+
+      function logout() {
+        stopAutoRefresh();
+        localStorage.removeItem("token");
+        token = null;
+        document.getElementById("loginPage").style.display = "flex";
+        document.getElementById("dashboard").style.display = "none";
+        document.getElementById("username").value = "";
+        document.getElementById("password").value = "";
+      }
+    </script>
   </body>
 </html>
